@@ -69,6 +69,7 @@ export function AppShell() {
     setRemoteAudioElement,
     requestMicrophoneFromGesture,
     unlockRemoteAudio,
+    retryVoiceLink,
     cleanup,
     endPeerOnly,
     getPeerConnection,
@@ -285,6 +286,7 @@ export function AppShell() {
               onReport={handleOpenReport}
               onUnlockAudio={unlockRemoteAudio}
               onRetryMic={handleRetryMic}
+              onRetryVoiceLink={() => void retryVoiceLink()}
               setRemoteAudioElement={setRemoteAudioElement}
               getPeerConnection={getPeerConnection}
             />

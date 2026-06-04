@@ -14,11 +14,17 @@
 const OPEN_RELAY = {
   username: "openrelayproject",
   credential: "openrelayproject",
-  turnUrls: [
+  urls: [
+    "stun:stun.relay.metered.ca:80",
+    "stun:openrelay.metered.ca:80",
     "turn:openrelay.metered.ca:80",
     "turn:openrelay.metered.ca:443",
     "turn:openrelay.metered.ca:443?transport=tcp",
     "turns:openrelay.metered.ca:443?transport=tcp",
+    "turn:relay.metered.ca:80",
+    "turn:relay.metered.ca:443",
+    "turn:relay.metered.ca:443?transport=tcp",
+    "turns:relay.metered.ca:443?transport=tcp",
   ] as const,
 };
 
@@ -58,13 +64,11 @@ export function getIceServers(): RTCIceServer[] {
   }
 
   if (!hasEnvTurn()) {
-    for (const url of OPEN_RELAY.turnUrls) {
-      servers.push({
-        urls: url,
-        username: OPEN_RELAY.username,
-        credential: OPEN_RELAY.credential,
-      });
-    }
+    servers.push({
+      urls: [...OPEN_RELAY.urls],
+      username: OPEN_RELAY.username,
+      credential: OPEN_RELAY.credential,
+    });
   }
 
   return servers;

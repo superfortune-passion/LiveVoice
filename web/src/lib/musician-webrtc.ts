@@ -26,10 +26,12 @@ export const MUSICIAN_AUDIO_CONSTRAINTS: MediaStreamConstraints = {
  * RTCPeerConnection settings tuned for interactive voice.
  * DTLS-SRTP is mandatory in WebRTC — cannot be disabled.
  */
-export function getMusicianRtcConfiguration(): RTCConfiguration {
+export function getMusicianRtcConfiguration(
+  iceServers?: RTCIceServer[]
+): RTCConfiguration {
   return {
-    iceServers: getIceServers(),
-    iceCandidatePoolSize: 4,
+    iceServers: iceServers ?? getIceServers(),
+    iceCandidatePoolSize: 10,
     bundlePolicy: "max-bundle",
     rtcpMuxPolicy: "require",
     iceTransportPolicy: "all",

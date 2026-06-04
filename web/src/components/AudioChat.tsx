@@ -32,6 +32,7 @@ interface AudioChatProps {
   onReport: () => void;
   onUnlockAudio: () => void;
   onRetryMic: () => void;
+  onRetryVoiceLink: () => void;
   setRemoteAudioElement: (el: HTMLAudioElement | null) => void;
   getPeerConnection: () => RTCPeerConnection | null;
 }
@@ -55,6 +56,7 @@ export const AudioChat = memo(function AudioChat({
   onReport,
   onUnlockAudio,
   onRetryMic,
+  onRetryVoiceLink,
   setRemoteAudioElement,
   getPeerConnection,
 }: AudioChatProps) {
@@ -166,16 +168,18 @@ export const AudioChat = memo(function AudioChat({
           <SessionAlert
             variant="error"
             title="Partner voice not connected yet"
-            action={{ label: "Skip — try someone new", onClick: handleSkip }}
+            action={{
+              label: "Retry voice link",
+              onClick: () => void onRetryVoiceLink(),
+            }}
           >
             <p>
-              Your mic can work while the voice link is still opening. Wait a
-              few seconds, or tap Skip. Report does not fix audio or
-              permissions.
+              Microphone is OK — the voice tunnel through the internet is still
+              opening. We retry automatically; tap Retry or Skip.
             </p>
             <p className="mt-2">
-              Both people must allow the microphone on the home page before
-              matching.
+              Report abuse does not fix this. Both people need mic allowed on
+              the home page.
             </p>
           </SessionAlert>
         )}
