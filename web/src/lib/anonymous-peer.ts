@@ -34,8 +34,10 @@ function hashPeerId(peerId: string): number {
 export function anonymousPeerLabel(peerId: string | null | undefined): string {
   if (!peerId) return "Fellow musician";
   const h = hashPeerId(peerId);
-  const prefix = MUSICIAN_PREFIXES[h % MUSICIAN_PREFIXES.length];
-  const suffix = MUSICIAN_SUFFIXES[(h >> 8) % MUSICIAN_SUFFIXES.length];
-  const short = peerId.replace(/[^a-zA-Z0-9]/g, "").slice(-4).toUpperCase() || "????";
-  return `${prefix} #${short} · ${suffix}`;
+  const prefix = MUSICIAN_PREFIXES[h % MUSICIAN_PREFIXES.length] ?? "Musician";
+  const suffix =
+    MUSICIAN_SUFFIXES[(h >> 8) % MUSICIAN_SUFFIXES.length] ?? "on air";
+  const short =
+    peerId.replace(/[^a-zA-Z0-9]/g, "").slice(-4).toUpperCase() || "????";
+  return `${prefix} #${short} - ${suffix}`;
 }

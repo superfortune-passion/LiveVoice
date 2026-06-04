@@ -108,7 +108,7 @@ export const CallControls = memo(function CallControls({
           whileTap={{ scale: 0.96 }}
           onClick={onReport}
           disabled={!canReport}
-          aria-label="Report"
+          aria-label="Report user for abuse (not for microphone)"
           className={`${btn} border border-rose-500/25 bg-rose-500/10 text-rose-100 hover:bg-rose-500/20`}
         >
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" className="icon-strong" aria-hidden>

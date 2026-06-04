@@ -63,6 +63,7 @@ export function AppShell() {
     micError,
     rtcReady,
     needsAudioUnlock,
+    remoteAudioPlaying,
     toggleMute,
     setRemoteAudioElement,
     requestMicrophoneFromGesture,
@@ -275,6 +276,7 @@ export function AppShell() {
               rtcReady={rtcReady}
               isRequestingMic={isRequestingMic}
               needsAudioUnlock={needsAudioUnlock}
+              remoteAudioPlaying={remoteAudioPlaying}
               onToggleMute={toggleMute}
               onSkip={handleSkip}
               onEnd={handleEnd}

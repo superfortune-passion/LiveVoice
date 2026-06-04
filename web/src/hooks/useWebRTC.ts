@@ -92,20 +92,38 @@ export function useWebRTC({ socket, enabled }: UseWebRTCOptions) {
   const [micError, setMicError] = useState<MicError>(null);
   const [rtcReady, setRtcReady] = useState(false);
   const [needsAudioUnlock, setNeedsAudioUnlock] = useState(false);
+  const [remoteAudioPlaying, setRemoteAudioPlaying] = useState(false);
+
+  const syncRemotePlaybackState = useCallback(() => {
+    const el = remoteAudioRef.current;
+    const playing =
+      !!el &&
+      !el.paused &&
+      !el.ended &&
+      el.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA;
+    setRemoteAudioPlaying(playing);
+    if (playing) {
+      setNeedsAudioUnlock(false);
+    }
+  }, []);
 
   const attachRemotePlayback = useCallback(async () => {
     const el = remoteAudioRef.current;
     const stream = remoteStreamRef.current;
-    if (!el || !stream) return;
+    if (!el || !stream) return false;
     el.srcObject = stream;
     el.volume = remoteVolumeRef.current;
+    el.muted = false;
+    setNeedsAudioUnlock(true);
     try {
       await el.play();
-      setNeedsAudioUnlock(false);
+      syncRemotePlaybackState();
+      return true;
     } catch {
-      setNeedsAudioUnlock(true);
+      setRemoteAudioPlaying(false);
+      return false;
     }
-  }, []);
+  }, [syncRemotePlaybackState]);
 
   const releaseRemoteStream = useCallback(() => {
     stopStreamTracks(remoteStreamRef.current);
@@ -131,6 +149,8 @@ export function useWebRTC({ socket, enabled }: UseWebRTCOptions) {
     releaseRemoteStream();
     peerIdRef.current = null;
     setRtcReady(false);
+    setNeedsAudioUnlock(false);
+    setRemoteAudioPlaying(false);
   }, [releaseRemoteStream]);
 
   const disposeMonitorPipeline = useCallback(() => {
@@ -435,15 +455,34 @@ export function useWebRTC({ socket, enabled }: UseWebRTCOptions) {
   }, []);
 
   const unlockRemoteAudio = useCallback(async () => {
-    await attachRemotePlayback();
+    return attachRemotePlayback();
   }, [attachRemotePlayback]);
 
-  const setRemoteAudioElement = useCallback((el: HTMLAudioElement | null) => {
-    remoteAudioRef.current = el;
-    if (el && remoteStreamRef.current) {
-      void attachRemotePlayback();
-    }
-  }, [attachRemotePlayback]);
+  const setRemoteAudioElement = useCallback(
+    (el: HTMLAudioElement | null) => {
+      const prev = remoteAudioRef.current;
+      if (prev) {
+        prev.onplaying = null;
+        prev.onpause = null;
+        prev.onended = null;
+        prev.onemptied = null;
+      }
+
+      remoteAudioRef.current = el;
+      if (!el) return;
+
+      const onPlaybackChange = () => syncRemotePlaybackState();
+      el.onplaying = onPlaybackChange;
+      el.onpause = onPlaybackChange;
+      el.onended = onPlaybackChange;
+      el.onemptied = onPlaybackChange;
+
+      if (remoteStreamRef.current) {
+        void attachRemotePlayback();
+      }
+    },
+    [attachRemotePlayback, syncRemotePlaybackState]
+  );
 
   const prepareForCall = useCallback(async () => {
     return requestMicrophone();
@@ -509,6 +548,25 @@ export function useWebRTC({ socket, enabled }: UseWebRTCOptions) {
     };
   }, [enabled, teardownPeer]);
 
+  /** First tap anywhere in the call unlocks speaker output (browser autoplay rule). */
+  useEffect(() => {
+    if (!needsAudioUnlock || !remoteStream) return;
+
+    const unlockFromGesture = () => {
+      void attachRemotePlayback();
+    };
+
+    document.addEventListener("pointerdown", unlockFromGesture, {
+      capture: true,
+      once: true,
+    });
+    return () => {
+      document.removeEventListener("pointerdown", unlockFromGesture, {
+        capture: true,
+      });
+    };
+  }, [needsAudioUnlock, remoteStream, attachRemotePlayback]);
+
   useEffect(() => {
     return () => {
       fullCleanup();
@@ -523,6 +581,7 @@ export function useWebRTC({ socket, enabled }: UseWebRTCOptions) {
     micError,
     rtcReady,
     needsAudioUnlock,
+    remoteAudioPlaying,
     toggleMute,
     setRemoteAudioElement,
     prepareForCall,

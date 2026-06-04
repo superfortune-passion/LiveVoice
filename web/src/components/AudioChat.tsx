@@ -23,6 +23,7 @@ interface AudioChatProps {
   rtcReady: boolean;
   isRequestingMic: boolean;
   needsAudioUnlock: boolean;
+  remoteAudioPlaying: boolean;
   onToggleMute: () => void;
   onSkip: () => void;
   onEnd: () => void;
@@ -44,6 +45,7 @@ export const AudioChat = memo(function AudioChat({
   rtcReady,
   isRequestingMic,
   needsAudioUnlock,
+  remoteAudioPlaying,
   onToggleMute,
   onSkip,
   onEnd,
@@ -71,6 +73,25 @@ export const AudioChat = memo(function AudioChat({
     getPeerConnection,
     phase === "connected"
   );
+  const showHearPartnerHint =
+    !!remoteStream &&
+    phase === "connected" &&
+    (!remoteAudioPlaying || needsAudioUnlock);
+
+  const handleUnlockAudio = () => {
+    void onUnlockAudio();
+  };
+
+  const handleToggleMute = () => {
+    void onUnlockAudio();
+    onToggleMute();
+  };
+
+  const handleSkip = () => {
+    void onUnlockAudio();
+    onSkip();
+  };
+
   const canSkip =
     phase === "connected" ||
     phase === "connecting" ||
@@ -98,6 +119,23 @@ export const AudioChat = memo(function AudioChat({
       {...fadeSlide}
       aria-label="Voice chat session"
     >
+      {showHearPartnerHint && (
+        <motion.button
+          type="button"
+          initial={{ opacity: 0, y: -12 }}
+          animate={{ opacity: 1, y: 0 }}
+          onClick={handleUnlockAudio}
+          className="fixed left-1/2 top-[max(4.5rem,calc(env(safe-area-inset-top)+3.5rem))] z-[60] w-[min(calc(100%-2rem),24rem)] -translate-x-1/2 rounded-2xl border-2 border-amber-400 bg-amber-500 px-4 py-3 text-center shadow-[0_8px_32px_-4px_rgba(245,158,11,0.65)]"
+        >
+          <p className="text-sm font-bold text-amber-950 sm:text-base">
+            Tap here to hear your partner
+          </p>
+          <p className="mt-0.5 text-[11px] font-medium text-amber-950/80 sm:text-xs">
+            Yellow bar at top — not the red Report button below
+          </p>
+        </motion.button>
+      )}
+
       <audio
         ref={setRemoteAudioElement}
         autoPlay
@@ -108,18 +146,6 @@ export const AudioChat = memo(function AudioChat({
       <audio ref={localPreviewRef} playsInline muted className="sr-only" />
 
       <div className="mx-auto flex w-full max-w-2xl min-h-0 flex-1 flex-col gap-6 pb-[max(6rem,env(safe-area-inset-bottom))]">
-        {needsAudioUnlock && phase === "connected" && (
-          <motion.button
-            type="button"
-            initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
-            onClick={onUnlockAudio}
-            className="glass-panel w-full rounded-2xl border border-amber-500/30 px-4 py-3 text-sm font-medium text-amber-100 hover:bg-amber-500/10"
-          >
-            Tap to enable partner audio
-          </motion.button>
-        )}
-
         <MatchStateCard
           phase={phase}
           micError={micError}
@@ -148,14 +174,25 @@ export const AudioChat = memo(function AudioChat({
           </motion.div>
         )}
 
+        {phase === "connected" &&
+          remoteStream &&
+          !remoteSpeaking &&
+          remoteAudioPlaying &&
+          !isMuted && (
+            <p className="text-center text-xs text-[#B0B8C8]">
+              Partner&apos;s line is quiet — they may still need to allow the
+              microphone or tap to hear you on their side.
+            </p>
+          )}
+
         <div className="sticky bottom-4 z-20 mt-auto sm:bottom-6">
           <CallControls
             isMuted={isMuted}
             canSkip={canSkip}
             canReport={canReport}
             hasLocalStream={!!localStream}
-            onToggleMute={onToggleMute}
-            onSkip={onSkip}
+            onToggleMute={handleToggleMute}
+            onSkip={handleSkip}
             onReport={onReport}
             onEnd={onEnd}
           />

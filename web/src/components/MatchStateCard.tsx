@@ -175,7 +175,7 @@ export const MatchStateCard = memo(function MatchStateCard({
                   <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#B0B8C8]">
                     On the line
                   </p>
-                  <p className="truncate text-base font-bold leading-snug text-white sm:text-lg">
+                  <p className="text-base font-bold leading-snug text-white sm:text-lg">
                     {anonymousPeerLabel(peerId)}
                   </p>
                 </div>
