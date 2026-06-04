@@ -11,6 +11,7 @@ import type { ConnectionStatus } from "@/types/socket";
 import { fadeSlide } from "@/lib/motion";
 import { CallControls } from "./CallControls";
 import { MatchStateCard } from "./MatchStateCard";
+import { SessionAlert } from "./SessionAlert";
 
 interface AudioChatProps {
   status: ConnectionStatus;
@@ -80,6 +81,13 @@ export const AudioChat = memo(function AudioChat({
     getPeerConnection,
     status === "connected"
   );
+
+  const needsMicPermission =
+    !localStream?.active &&
+    (status === "connected" ||
+      status === "searching" ||
+      phase === "connecting");
+
   const showHearPartnerHint =
     !!remoteStream &&
     voiceLinkReady &&
@@ -133,44 +141,6 @@ export const AudioChat = memo(function AudioChat({
       {...fadeSlide}
       aria-label="Voice chat session"
     >
-      {showVoicePathHelp && (
-        <motion.div
-          role="alert"
-          initial={{ opacity: 0, y: -8 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="fixed left-1/2 top-[max(4.5rem,calc(env(safe-area-inset-top)+3.5rem))] z-[60] w-[min(calc(100%-2rem),26rem)] -translate-x-1/2 rounded-2xl border border-rose-400/50 bg-rose-950/90 px-4 py-3 text-center"
-        >
-          <p className="text-sm font-bold text-rose-100">
-            No voice from partner yet
-          </p>
-          <p className="mt-1 text-xs leading-relaxed text-rose-100/85">
-            This is a network issue, not microphone permission. The red Report
-            button does not fix audio. Both sides need mic allowed; voice uses
-            a relay through the internet.
-          </p>
-          <p className="mt-2 text-xs text-rose-200/70">
-            Try Skip for a new match, or redeploy with the latest app build.
-          </p>
-        </motion.div>
-      )}
-
-      {showHearPartnerHint && (
-        <motion.button
-          type="button"
-          initial={{ opacity: 0, y: -12 }}
-          animate={{ opacity: 1, y: 0 }}
-          onClick={handleUnlockAudio}
-          className="fixed left-1/2 top-[max(4.5rem,calc(env(safe-area-inset-top)+3.5rem))] z-[60] w-[min(calc(100%-2rem),24rem)] -translate-x-1/2 rounded-2xl border-2 border-amber-400 bg-amber-500 px-4 py-3 text-center shadow-[0_8px_32px_-4px_rgba(245,158,11,0.65)]"
-        >
-          <p className="text-sm font-bold text-amber-950 sm:text-base">
-            Tap here to hear your partner
-          </p>
-          <p className="mt-0.5 text-[11px] font-medium text-amber-950/80 sm:text-xs">
-            Yellow bar at top — not the red Report button below
-          </p>
-        </motion.button>
-      )}
-
       <audio
         ref={setRemoteAudioElement}
         autoPlay
@@ -180,7 +150,47 @@ export const AudioChat = memo(function AudioChat({
       />
       <audio ref={localPreviewRef} playsInline muted className="sr-only" />
 
-      <div className="mx-auto flex w-full max-w-2xl min-h-0 flex-1 flex-col gap-6 pb-[max(6rem,env(safe-area-inset-bottom))]">
+      <div className="mx-auto flex w-full max-w-2xl min-h-0 flex-1 flex-col gap-4 pb-[max(6rem,env(safe-area-inset-bottom))] sm:gap-5">
+        {needsMicPermission && (
+          <SessionAlert
+            variant="warning"
+            title="Microphone permission needed"
+            action={{ label: "Allow microphone", onClick: onRetryMic }}
+          >
+            Tap the button above — your browser will ask to use the mic. This
+            is not the Report button at the bottom (Report is only for abuse).
+          </SessionAlert>
+        )}
+
+        {showVoicePathHelp && (
+          <SessionAlert
+            variant="error"
+            title="Partner voice not connected yet"
+            action={{ label: "Skip — try someone new", onClick: handleSkip }}
+          >
+            <p>
+              Your mic can work while the voice link is still opening. Wait a
+              few seconds, or tap Skip. Report does not fix audio or
+              permissions.
+            </p>
+            <p className="mt-2">
+              Both people must allow the microphone on the home page before
+              matching.
+            </p>
+          </SessionAlert>
+        )}
+
+        {showHearPartnerHint && (
+          <SessionAlert
+            variant="warning"
+            title="Tap to hear your partner"
+            action={{ label: "Enable speaker audio", onClick: handleUnlockAudio }}
+          >
+            Browsers block speaker audio until you tap. Use this yellow alert —
+            not the red Report abuse button below.
+          </SessionAlert>
+        )}
+
         <MatchStateCard
           phase={phase}
           micError={micError}
@@ -215,8 +225,8 @@ export const AudioChat = memo(function AudioChat({
           remoteAudioPlaying &&
           !isMuted && (
             <p className="text-center text-xs text-[#B0B8C8]">
-              Partner&apos;s line is quiet — they may still need to allow the
-              microphone or tap to hear you on their side.
+              Partner&apos;s line is quiet — they may need Allow microphone or
+              Tap to hear on their side.
             </p>
           )}
 

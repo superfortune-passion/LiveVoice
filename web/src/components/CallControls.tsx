@@ -120,7 +120,7 @@ export const CallControls = memo(function CallControls({
               strokeLinejoin="round"
             />
           </svg>
-          Report
+          Report abuse
         </motion.button>
 
         <motion.button
@@ -142,6 +142,10 @@ export const CallControls = memo(function CallControls({
           End
         </motion.button>
       </div>
+      <p className="mt-2 text-center text-[10px] leading-snug text-slate-500">
+        Mic: use Allow microphone above or on home. Report abuse: harassment
+        only — not for audio.
+      </p>
     </motion.nav>
   );
 });

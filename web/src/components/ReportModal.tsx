@@ -46,11 +46,11 @@ export function ReportModal({
             exit={{ opacity: 0, y: 12 }}
           >
             <h2 id="report-title" className="text-lg font-semibold text-white">
-              Report this user
+              Report abuse
             </h2>
             <p className="mt-2 text-sm text-slate-400">
-              Reports are anonymous. No personal data is stored. We log the
-              report to improve safety.
+              For harassment, spam, or unsafe behavior only. This does not
+              change microphone or speaker settings.
             </p>
             <div className="mt-4 flex flex-col gap-2">
               {REASONS.map((r) => (

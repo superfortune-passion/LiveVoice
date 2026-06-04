@@ -50,7 +50,7 @@ const copy: Record<AppPhase, { title: string; subtitle: string }> = {
   },
   connecting: {
     title: "Tuning the line",
-    subtitle: "Opening encrypted voice path through the network relay…",
+    subtitle: "Setting up the voice link…",
   },
   connected: {
     title: "You're live",

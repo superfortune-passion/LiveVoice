@@ -50,8 +50,12 @@ export function useMatchmaking() {
   }, []);
 
   const pushMessage = useCallback(
-    (type: StatusMessage["type"], text: string) => {
-      setMessages((prev) => [...prev.slice(-5), createMessage(type, text)]);
+    (type: StatusMessage["type"], text: string, replace = false) => {
+      setMessages((prev) => {
+        if (replace) return [createMessage(type, text)];
+        const next = [...prev, createMessage(type, text)];
+        return next.slice(-2);
+      });
     },
     []
   );
@@ -99,7 +103,7 @@ export function useMatchmaking() {
       setPeerId(null);
       setStatus("searching");
       wasSearchingRef.current = true;
-      pushMessage("info", "Looking for someone to talk with…");
+      pushMessage("info", "Looking for someone to talk with…", true);
       emitStartSearch(tags);
     },
     [socket, pushMessage, clearDisconnectIdleTimer, emitStartSearch]
@@ -156,7 +160,7 @@ export function useMatchmaking() {
       setStatus("connected");
       setSharedInterests(payload.sharedInterests ?? []);
       wasSearchingRef.current = false;
-      pushMessage("success", "Connected! Say hello.");
+      pushMessage("success", "Connected! Say hello.", true);
     };
 
     const onPeerDisconnected = (payload: PeerDisconnectedPayload) => {
@@ -179,7 +183,7 @@ export function useMatchmaking() {
     const onConnect = () => {
       if (!hasShownServerConnectRef.current) {
         hasShownServerConnectRef.current = true;
-        pushMessage("success", "Connected to server.");
+        pushMessage("success", "Connected to server.", true);
       } else {
         pushMessage("info", "Reconnected — resuming search…");
       }
@@ -192,7 +196,7 @@ export function useMatchmaking() {
         setStatus("searching");
         wasSearchingRef.current = true;
         socket.emit("start-search", { interests: pending });
-        pushMessage("info", "Looking for someone to talk with…");
+        pushMessage("info", "Looking for someone to talk with…", true);
         return;
       }
 

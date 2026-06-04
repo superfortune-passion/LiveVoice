@@ -299,7 +299,11 @@ export function AppShell() {
         submitting={reportSubmitting}
       />
 
-      <StatusToast messages={messages} onDismiss={dismissMessage} />
+      <StatusToast
+        messages={messages}
+        onDismiss={dismissMessage}
+        inSession={inSession}
+      />
     </div>
   );
 }
