@@ -11,6 +11,7 @@ interface UseAppPhaseOptions {
   micError: MicError;
   hasLocalStream: boolean;
   rtcReady: boolean;
+  voiceLinkReady?: boolean;
   isRequestingMic: boolean;
 }
 
@@ -20,6 +21,7 @@ export function useAppPhase({
   micError,
   hasLocalStream,
   rtcReady,
+  voiceLinkReady = true,
   isRequestingMic,
 }: UseAppPhaseOptions): AppPhase {
   return useMemo(() => {
@@ -38,7 +40,8 @@ export function useAppPhase({
     if (connectionStatus === "searching") return "searching";
 
     if (connectionStatus === "connected") {
-      return rtcReady ? "connected" : "connecting";
+      if (!rtcReady || !voiceLinkReady) return "connecting";
+      return "connected";
     }
 
     return "idle";
@@ -48,6 +51,7 @@ export function useAppPhase({
     micError,
     hasLocalStream,
     rtcReady,
+    voiceLinkReady,
     isRequestingMic,
   ]);
 }

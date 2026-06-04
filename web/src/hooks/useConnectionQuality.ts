@@ -9,6 +9,7 @@ export interface ConnectionQuality {
   packetsLost: number | null;
   jitterMs: number | null;
   isLowLatency: boolean;
+  iceConnectionState: RTCIceConnectionState | null;
 }
 
 const EMPTY_QUALITY: ConnectionQuality = {
@@ -17,6 +18,7 @@ const EMPTY_QUALITY: ConnectionQuality = {
   packetsLost: null,
   jitterMs: null,
   isLowLatency: false,
+  iceConnectionState: null,
 };
 
 const POLL_MS = 2000;
@@ -24,7 +26,13 @@ const POLL_MS = 2000;
 async function readStats(
   pc: RTCPeerConnection | null
 ): Promise<ConnectionQuality> {
-  if (!pc || pc.connectionState !== "connected") return EMPTY_QUALITY;
+  if (!pc) return EMPTY_QUALITY;
+
+  const iceConnectionState = pc.iceConnectionState;
+
+  if (pc.connectionState !== "connected") {
+    return { ...EMPTY_QUALITY, iceConnectionState };
+  }
 
   try {
     const report = await pc.getStats();
@@ -57,9 +65,10 @@ async function readStats(
       packetsLost,
       jitterMs,
       isLowLatency: rttMs !== null && rttMs <= MUSICIAN_RTT_TARGET_MS,
+      iceConnectionState,
     };
   } catch {
-    return EMPTY_QUALITY;
+    return { ...EMPTY_QUALITY, iceConnectionState };
   }
 }
 

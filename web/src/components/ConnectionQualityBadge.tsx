@@ -11,13 +11,20 @@ interface ConnectionQualityBadgeProps {
 export const ConnectionQualityBadge = memo(function ConnectionQualityBadge({
   quality,
 }: ConnectionQualityBadgeProps) {
-  const { rttMs, candidateType, isLowLatency } = quality;
+  const { rttMs, candidateType, isLowLatency, iceConnectionState } = quality;
 
   if (rttMs === null) {
+    const iceLabel =
+      iceConnectionState === "checking" || iceConnectionState === "new"
+        ? "Connecting voice…"
+        : iceConnectionState === "failed"
+          ? "Voice blocked — try Skip"
+          : iceConnectionState === "disconnected"
+            ? "Voice reconnecting…"
+            : "Measuring link…";
+
     return (
-      <span className="text-[10px] font-medium text-[#B0B8C8]">
-        Measuring link…
-      </span>
+      <span className="text-[10px] font-medium text-[#B0B8C8]">{iceLabel}</span>
     );
   }
 

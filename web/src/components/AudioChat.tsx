@@ -24,6 +24,7 @@ interface AudioChatProps {
   isRequestingMic: boolean;
   needsAudioUnlock: boolean;
   remoteAudioPlaying: boolean;
+  iceConnectionState: RTCIceConnectionState;
   onToggleMute: () => void;
   onSkip: () => void;
   onEnd: () => void;
@@ -46,6 +47,7 @@ export const AudioChat = memo(function AudioChat({
   isRequestingMic,
   needsAudioUnlock,
   remoteAudioPlaying,
+  iceConnectionState,
   onToggleMute,
   onSkip,
   onEnd,
@@ -59,24 +61,36 @@ export const AudioChat = memo(function AudioChat({
   const localSpeaking = useVoiceActivity(localStream);
   const remoteSpeaking = useVoiceActivity(remoteStream);
 
+  const voiceLinkReady =
+    iceConnectionState === "connected" ||
+    iceConnectionState === "completed";
+
   const phase = useAppPhase({
     inSession: true,
     connectionStatus: status,
     micError,
     hasLocalStream: !!localStream,
     rtcReady,
+    voiceLinkReady,
     isRequestingMic,
   });
 
-  const callSeconds = useCallTimer(phase === "connected");
+  const callSeconds = useCallTimer(status === "connected");
   const connectionQuality = useConnectionQuality(
     getPeerConnection,
-    phase === "connected"
+    status === "connected"
   );
   const showHearPartnerHint =
     !!remoteStream &&
+    voiceLinkReady &&
     phase === "connected" &&
     (!remoteAudioPlaying || needsAudioUnlock);
+
+  const showVoicePathHelp =
+    status === "connected" &&
+    callSeconds >= 6 &&
+    !voiceLinkReady &&
+    phase === "connecting";
 
   const handleUnlockAudio = () => {
     void onUnlockAudio();
@@ -119,6 +133,27 @@ export const AudioChat = memo(function AudioChat({
       {...fadeSlide}
       aria-label="Voice chat session"
     >
+      {showVoicePathHelp && (
+        <motion.div
+          role="alert"
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="fixed left-1/2 top-[max(4.5rem,calc(env(safe-area-inset-top)+3.5rem))] z-[60] w-[min(calc(100%-2rem),26rem)] -translate-x-1/2 rounded-2xl border border-rose-400/50 bg-rose-950/90 px-4 py-3 text-center"
+        >
+          <p className="text-sm font-bold text-rose-100">
+            No voice from partner yet
+          </p>
+          <p className="mt-1 text-xs leading-relaxed text-rose-100/85">
+            This is a network issue, not microphone permission. The red Report
+            button does not fix audio. Both sides need mic allowed; voice uses
+            a relay through the internet.
+          </p>
+          <p className="mt-2 text-xs text-rose-200/70">
+            Try Skip for a new match, or redeploy with the latest app build.
+          </p>
+        </motion.div>
+      )}
+
       {showHearPartnerHint && (
         <motion.button
           type="button"

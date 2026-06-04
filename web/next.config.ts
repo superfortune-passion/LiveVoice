@@ -7,19 +7,33 @@ const rootDir = path.dirname(fileURLToPath(import.meta.url));
 
 /** All local IPv4 addresses — so any LAN device can load Next dev client/HMR. */
 function getLocalNetworkHosts(): string[] {
-  const hosts = new Set<string>(["localhost", "127.0.0.1"]);
+  const port = process.env.PORT ?? process.env.WEB_DEV_PORT ?? "3000";
+  const hosts = new Set<string>([
+    "localhost",
+    "127.0.0.1",
+    `localhost:${port}`,
+    `127.0.0.1:${port}`,
+  ]);
   const ifaces = os.networkInterfaces();
   for (const entries of Object.values(ifaces)) {
     for (const entry of entries ?? []) {
       if (entry.family === "IPv4" && !entry.internal) {
         hosts.add(entry.address);
+        hosts.add(`${entry.address}:${port}`);
       }
     }
   }
   const fromEnv = process.env.ALLOWED_DEV_ORIGINS?.split(",")
     .map((s) => s.trim())
     .filter(Boolean);
-  if (fromEnv) fromEnv.forEach((h) => hosts.add(h));
+  if (fromEnv) {
+    for (const item of fromEnv) {
+      hosts.add(item);
+      if (!item.includes(":")) {
+        hosts.add(`${item}:${port}`);
+      }
+    }
+  }
   return [...hosts];
 }
 

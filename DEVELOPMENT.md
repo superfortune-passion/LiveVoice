@@ -37,6 +37,10 @@ npm run dev:web
 
 Open http://localhost:3000
 
+**Computer B on the same Wi‑Fi:** open `http://<Computer-A-IP>:3000` (from `http://localhost:3000/api/dev-info`), **not** `localhost`. If you see **HTTP 403 Access denied**, restart `npm run dev:web` after pulling latest `next.config.ts`, or set `ALLOWED_DEV_ORIGINS=192.168.x.x:3000` in `web/.env.local`.
+
+**Mic on LAN:** `http://192.168.x.x` often blocks the microphone in Chrome. For the same behavior as Vercel, use your **Vercel HTTPS URL** or `npm run dev:internet` (ngrok). See [TESTING_PARITY.md](./TESTING_PARITY.md).
+
 ## Option B — One terminal (both services)
 
 Runs web + server together via `concurrently`. Quit **both** with a single `Ctrl+C`.

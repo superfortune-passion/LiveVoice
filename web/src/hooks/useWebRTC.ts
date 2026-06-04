@@ -83,6 +83,8 @@ export function useWebRTC({ socket, enabled }: UseWebRTCOptions) {
   const pendingOfferRef = useRef<SdpPayload | null>(null);
   const makingOfferRef = useRef(false);
   const ignoreOfferRef = useRef(false);
+  const isInitiatorRef = useRef(false);
+  const iceRestartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const monitorPipelineRef = useRef<LocalMonitorPipeline | null>(null);
   const remoteVolumeRef = useRef(1);
 
@@ -93,6 +95,44 @@ export function useWebRTC({ socket, enabled }: UseWebRTCOptions) {
   const [rtcReady, setRtcReady] = useState(false);
   const [needsAudioUnlock, setNeedsAudioUnlock] = useState(false);
   const [remoteAudioPlaying, setRemoteAudioPlaying] = useState(false);
+  const [iceConnectionState, setIceConnectionState] =
+    useState<RTCIceConnectionState>("new");
+
+  const clearIceRestartTimer = useCallback(() => {
+    if (iceRestartTimerRef.current) {
+      clearTimeout(iceRestartTimerRef.current);
+      iceRestartTimerRef.current = null;
+    }
+  }, []);
+
+  const restartIce = useCallback(async () => {
+    const pc = peerRef.current;
+    if (!pc || !isInitiatorRef.current || makingOfferRef.current) return;
+    if (
+      pc.iceConnectionState === "connected" ||
+      pc.iceConnectionState === "completed"
+    ) {
+      return;
+    }
+
+    makingOfferRef.current = true;
+    try {
+      const offer = await pc.createOffer({ iceRestart: true });
+      await pc.setLocalDescription(offer);
+      socket?.emit("offer", { sdp: offer });
+    } catch {
+      /* ignore */
+    } finally {
+      makingOfferRef.current = false;
+    }
+  }, [socket]);
+
+  const scheduleIceRestart = useCallback(() => {
+    clearIceRestartTimer();
+    iceRestartTimerRef.current = setTimeout(() => {
+      void restartIce();
+    }, 4000);
+  }, [clearIceRestartTimer, restartIce]);
 
   const syncRemotePlaybackState = useCallback(() => {
     const el = remoteAudioRef.current;
@@ -140,6 +180,8 @@ export function useWebRTC({ socket, enabled }: UseWebRTCOptions) {
     pendingOfferRef.current = null;
     makingOfferRef.current = false;
     ignoreOfferRef.current = false;
+    clearIceRestartTimer();
+    isInitiatorRef.current = false;
 
     if (peerRef.current) {
       closePeerConnection(peerRef.current);
@@ -151,7 +193,8 @@ export function useWebRTC({ socket, enabled }: UseWebRTCOptions) {
     setRtcReady(false);
     setNeedsAudioUnlock(false);
     setRemoteAudioPlaying(false);
-  }, [releaseRemoteStream]);
+    setIceConnectionState("new");
+  }, [releaseRemoteStream, clearIceRestartTimer]);
 
   const disposeMonitorPipeline = useCallback(() => {
     monitorPipelineRef.current?.dispose();
@@ -234,8 +277,11 @@ export function useWebRTC({ socket, enabled }: UseWebRTCOptions) {
       preferLowLatencyOpus(pc);
 
       pc.ontrack = (event) => {
-        const [incoming] = event.streams;
-        if (!incoming) return;
+        let incoming = event.streams[0];
+        if (!incoming) {
+          incoming = new MediaStream();
+          incoming.addTrack(event.track);
+        }
         stopStreamTracks(remoteStreamRef.current);
         remoteStreamRef.current = incoming;
         setRemoteStream(incoming);
@@ -244,11 +290,16 @@ export function useWebRTC({ socket, enabled }: UseWebRTCOptions) {
       };
 
       pc.onicecandidate = (event) => {
-        if (event.candidate && socket?.connected && peerIdRef.current) {
+        if (!socket?.connected || !peerIdRef.current) return;
+        if (event.candidate) {
           socket.emit("ice-candidate", {
             candidate: event.candidate.toJSON(),
           });
+          return;
         }
+        socket.emit("ice-candidate", {
+          candidate: { candidate: "" },
+        });
       };
 
       pc.onconnectionstatechange = () => {
@@ -259,8 +310,21 @@ export function useWebRTC({ socket, enabled }: UseWebRTCOptions) {
       };
 
       pc.oniceconnectionstatechange = () => {
-        if (pc.iceConnectionState === "failed") {
-          teardownPeer();
+        const iceState = pc.iceConnectionState;
+        setIceConnectionState(iceState);
+
+        if (iceState === "connected" || iceState === "completed") {
+          clearIceRestartTimer();
+          return;
+        }
+
+        if (iceState === "failed") {
+          void restartIce();
+          return;
+        }
+
+        if (iceState === "disconnected") {
+          scheduleIceRestart();
         }
       };
 
@@ -268,7 +332,7 @@ export function useWebRTC({ socket, enabled }: UseWebRTCOptions) {
       peerIdRef.current = peerId;
       return pc;
     },
-    [socket, attachRemotePlayback, teardownPeer]
+    [socket, attachRemotePlayback, teardownPeer, clearIceRestartTimer, restartIce, scheduleIceRestart]
   );
 
   const isFromCurrentPeer = useCallback((from: string) => {
@@ -341,6 +405,7 @@ export function useWebRTC({ socket, enabled }: UseWebRTCOptions) {
 
       peerIdRef.current = payload.peerId;
       setIsMuted(false);
+      isInitiatorRef.current = payload.isInitiator;
 
       if (payload.isInitiator) {
         const pc = createPeerConnection(stream, payload.peerId);
@@ -416,6 +481,16 @@ export function useWebRTC({ socket, enabled }: UseWebRTCOptions) {
       const pc = peerRef.current;
       if (!pc?.remoteDescription) {
         pendingCandidatesRef.current.push(payload.candidate);
+        return;
+      }
+      if (!payload.candidate.candidate) {
+        try {
+          await pc.addIceCandidate(
+            new RTCIceCandidate({ candidate: "", sdpMid: "0", sdpMLineIndex: 0 })
+          );
+        } catch {
+          /* end-of-candidates */
+        }
         return;
       }
       try {
@@ -582,6 +657,7 @@ export function useWebRTC({ socket, enabled }: UseWebRTCOptions) {
     rtcReady,
     needsAudioUnlock,
     remoteAudioPlaying,
+    iceConnectionState,
     toggleMute,
     setRemoteAudioElement,
     prepareForCall,
