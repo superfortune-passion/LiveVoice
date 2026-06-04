@@ -1,0 +1,9 @@
+.cursor/
+node_modules/
+dist/
+.next/
+.env
+.env.local
+tunnel-urls.json
+*.log
+.DS_Store

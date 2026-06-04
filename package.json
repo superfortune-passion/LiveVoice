@@ -1,0 +1,22 @@
+{
+  "name": "voicelink",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Anonymous audio-only random matchmaking platform",
+  "scripts": {
+    "dev": "concurrently -n web,server -c cyan,magenta \"npm run dev --prefix web\" \"npm run dev --prefix server\"",
+    "dev:clean": "npm run stop && npm run dev",
+    "dev:web": "npm run dev --prefix web",
+    "dev:server": "npm run dev --prefix server",
+    "stop": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/stop-dev.ps1",
+    "tunnel": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/start-tunnel.ps1",
+    "tunnel:stop": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/stop-tunnel.ps1",
+    "dev:internet": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/dev-internet.ps1",
+    "build": "npm run build --prefix web && npm run build --prefix server",
+    "start:web": "npm run start --prefix web",
+    "start:server": "npm run start --prefix server"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}

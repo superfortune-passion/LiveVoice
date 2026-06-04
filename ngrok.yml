@@ -1,0 +1,12 @@
+# VoiceLink — expose local web (3000) + signaling (3001) to the internet.
+# Requires: ngrok authtoken (https://dashboard.ngrok.com/get-started/your-authtoken)
+# Run: npm run tunnel
+
+version: "2"
+tunnels:
+  voicelink-web:
+    addr: 3000
+    proto: http
+  voicelink-signaling:
+    addr: 3001
+    proto: http

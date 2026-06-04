@@ -1,0 +1,20 @@
+import { clsx } from "clsx";
+import type { ReactNode } from "react";
+
+interface GlassPanelProps {
+  children: ReactNode;
+  className?: string;
+}
+
+export function GlassPanel({ children, className }: GlassPanelProps) {
+  return (
+    <div
+      className={clsx(
+        "rounded-2xl border border-white/10 bg-white/[0.04] shadow-xl shadow-black/20 backdrop-blur-xl",
+        className
+      )}
+    >
+      {children}
+    </div>
+  );
+}
