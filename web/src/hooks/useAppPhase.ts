@@ -40,8 +40,9 @@ export function useAppPhase({
     if (connectionStatus === "searching") return "searching";
 
     if (connectionStatus === "connected") {
-      if (!rtcReady || !voiceLinkReady) return "connecting";
-      return "connected";
+      if (!hasLocalStream) return "connecting";
+      if (rtcReady || voiceLinkReady) return "connected";
+      return "connecting";
     }
 
     return "idle";

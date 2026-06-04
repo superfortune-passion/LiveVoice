@@ -62,14 +62,12 @@ export function AppShell() {
     isMuted,
     micError,
     rtcReady,
-    needsAudioUnlock,
-    remoteAudioPlaying,
     iceConnectionState,
     toggleMute,
     setRemoteAudioElement,
     requestMicrophoneFromGesture,
+    primeRemoteAudio,
     unlockRemoteAudio,
-    retryVoiceLink,
     cleanup,
     endPeerOnly,
     getPeerConnection,
@@ -124,6 +122,14 @@ export function AppShell() {
   }, [status, view, interests, endPeerOnly, startSearch, clearAutoRequeue]);
 
   useEffect(() => {
+    if (view !== "session" || status !== "connected" || rtcReady) return;
+    const timer = setTimeout(() => {
+      skip();
+    }, 22000);
+    return () => clearTimeout(timer);
+  }, [view, status, rtcReady, skip]);
+
+  useEffect(() => {
     if (view !== "session" || pendingSearchRef.current === null || !micReady) {
       return;
     }
@@ -134,14 +140,17 @@ export function AppShell() {
 
   const handleEnableMicrophone = useCallback(() => {
     setIsRequestingMic(true);
-    void requestMicrophoneFromGesture().finally(() => {
-      setIsRequestingMic(false);
-    });
-  }, [requestMicrophoneFromGesture]);
+    void requestMicrophoneFromGesture()
+      .then(() => primeRemoteAudio())
+      .finally(() => {
+        setIsRequestingMic(false);
+      });
+  }, [requestMicrophoneFromGesture, primeRemoteAudio]);
 
   const beginSession = useCallback(
     (rawTags: string[]) => {
       const tags = sanitizeInterestList(rawTags);
+      void primeRemoteAudio();
 
       if (!micReady) {
         pendingLandingMatchRef.current = tags;
@@ -152,7 +161,7 @@ export function AppShell() {
       pendingSearchRef.current = tags;
       setView("session");
     },
-    [micReady, handleEnableMicrophone]
+    [micReady, handleEnableMicrophone, primeRemoteAudio]
   );
 
   useEffect(() => {
@@ -277,8 +286,6 @@ export function AppShell() {
               micError={micError}
               rtcReady={rtcReady}
               isRequestingMic={isRequestingMic}
-              needsAudioUnlock={needsAudioUnlock}
-              remoteAudioPlaying={remoteAudioPlaying}
               iceConnectionState={iceConnectionState}
               onToggleMute={toggleMute}
               onSkip={handleSkip}
@@ -286,7 +293,6 @@ export function AppShell() {
               onReport={handleOpenReport}
               onUnlockAudio={unlockRemoteAudio}
               onRetryMic={handleRetryMic}
-              onRetryVoiceLink={() => void retryVoiceLink()}
               setRemoteAudioElement={setRemoteAudioElement}
               getPeerConnection={getPeerConnection}
             />

@@ -11,7 +11,6 @@ import type { ConnectionStatus } from "@/types/socket";
 import { fadeSlide } from "@/lib/motion";
 import { CallControls } from "./CallControls";
 import { MatchStateCard } from "./MatchStateCard";
-import { SessionAlert } from "./SessionAlert";
 
 interface AudioChatProps {
   status: ConnectionStatus;
@@ -23,8 +22,6 @@ interface AudioChatProps {
   micError: MicError;
   rtcReady: boolean;
   isRequestingMic: boolean;
-  needsAudioUnlock: boolean;
-  remoteAudioPlaying: boolean;
   iceConnectionState: RTCIceConnectionState;
   onToggleMute: () => void;
   onSkip: () => void;
@@ -32,7 +29,6 @@ interface AudioChatProps {
   onReport: () => void;
   onUnlockAudio: () => void;
   onRetryMic: () => void;
-  onRetryVoiceLink: () => void;
   setRemoteAudioElement: (el: HTMLAudioElement | null) => void;
   getPeerConnection: () => RTCPeerConnection | null;
 }
@@ -47,8 +43,6 @@ export const AudioChat = memo(function AudioChat({
   micError,
   rtcReady,
   isRequestingMic,
-  needsAudioUnlock,
-  remoteAudioPlaying,
   iceConnectionState,
   onToggleMute,
   onSkip,
@@ -56,11 +50,11 @@ export const AudioChat = memo(function AudioChat({
   onReport,
   onUnlockAudio,
   onRetryMic,
-  onRetryVoiceLink,
   setRemoteAudioElement,
   getPeerConnection,
 }: AudioChatProps) {
   const localPreviewRef = useRef<HTMLAudioElement>(null);
+  const micAutoRequestedRef = useRef(false);
   const localSpeaking = useVoiceActivity(localStream);
   const remoteSpeaking = useVoiceActivity(remoteStream);
 
@@ -84,28 +78,6 @@ export const AudioChat = memo(function AudioChat({
     status === "connected"
   );
 
-  const needsMicPermission =
-    !localStream?.active &&
-    (status === "connected" ||
-      status === "searching" ||
-      phase === "connecting");
-
-  const showHearPartnerHint =
-    !!remoteStream &&
-    voiceLinkReady &&
-    phase === "connected" &&
-    (!remoteAudioPlaying || needsAudioUnlock);
-
-  const showVoicePathHelp =
-    status === "connected" &&
-    callSeconds >= 6 &&
-    !voiceLinkReady &&
-    phase === "connecting";
-
-  const handleUnlockAudio = () => {
-    void onUnlockAudio();
-  };
-
   const handleToggleMute = () => {
     void onUnlockAudio();
     onToggleMute();
@@ -124,6 +96,13 @@ export const AudioChat = memo(function AudioChat({
   const canReport = phase === "connected" || phase === "connecting";
   const activeStream =
     phase === "connected" ? remoteStream ?? localStream : localStream;
+
+  useEffect(() => {
+    if (localStream?.active || micAutoRequestedRef.current) return;
+    if (status !== "connected" && status !== "searching") return;
+    micAutoRequestedRef.current = true;
+    onRetryMic();
+  }, [localStream, status, onRetryMic]);
 
   useEffect(() => {
     const el = localPreviewRef.current;
@@ -153,48 +132,6 @@ export const AudioChat = memo(function AudioChat({
       <audio ref={localPreviewRef} playsInline muted className="sr-only" />
 
       <div className="mx-auto flex w-full max-w-2xl min-h-0 flex-1 flex-col gap-4 pb-[max(6rem,env(safe-area-inset-bottom))] sm:gap-5">
-        {needsMicPermission && (
-          <SessionAlert
-            variant="warning"
-            title="Microphone permission needed"
-            action={{ label: "Allow microphone", onClick: onRetryMic }}
-          >
-            Tap the button above — your browser will ask to use the mic. This
-            is not the Report button at the bottom (Report is only for abuse).
-          </SessionAlert>
-        )}
-
-        {showVoicePathHelp && (
-          <SessionAlert
-            variant="error"
-            title="Partner voice not connected yet"
-            action={{
-              label: "Retry voice link",
-              onClick: () => void onRetryVoiceLink(),
-            }}
-          >
-            <p>
-              Microphone is OK — the voice tunnel through the internet is still
-              opening. We retry automatically; tap Retry or Skip.
-            </p>
-            <p className="mt-2">
-              Report abuse does not fix this. Both people need mic allowed on
-              the home page.
-            </p>
-          </SessionAlert>
-        )}
-
-        {showHearPartnerHint && (
-          <SessionAlert
-            variant="warning"
-            title="Tap to hear your partner"
-            action={{ label: "Enable speaker audio", onClick: handleUnlockAudio }}
-          >
-            Browsers block speaker audio until you tap. Use this yellow alert —
-            not the red Report abuse button below.
-          </SessionAlert>
-        )}
-
         <MatchStateCard
           phase={phase}
           micError={micError}
@@ -212,6 +149,12 @@ export const AudioChat = memo(function AudioChat({
           variant="session"
         />
 
+        {phase === "connecting" && status === "connected" && (
+          <p className="text-center text-xs text-[#B0B8C8]">
+            Opening voice automatically — no extra taps needed.
+          </p>
+        )}
+
         {phase === "error" && micErrorMessage(micError) && (
           <motion.div
             initial={{ opacity: 0 }}
@@ -222,17 +165,6 @@ export const AudioChat = memo(function AudioChat({
             {micErrorMessage(micError)}
           </motion.div>
         )}
-
-        {phase === "connected" &&
-          remoteStream &&
-          !remoteSpeaking &&
-          remoteAudioPlaying &&
-          !isMuted && (
-            <p className="text-center text-xs text-[#B0B8C8]">
-              Partner&apos;s line is quiet — they may need Allow microphone or
-              Tap to hear on their side.
-            </p>
-          )}
 
         <div className="sticky bottom-4 z-20 mt-auto sm:bottom-6">
           <CallControls

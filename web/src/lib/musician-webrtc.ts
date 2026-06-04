@@ -27,14 +27,15 @@ export const MUSICIAN_AUDIO_CONSTRAINTS: MediaStreamConstraints = {
  * DTLS-SRTP is mandatory in WebRTC — cannot be disabled.
  */
 export function getMusicianRtcConfiguration(
-  iceServers?: RTCIceServer[]
+  iceServers?: RTCIceServer[],
+  iceTransportPolicy: RTCIceTransportPolicy = "all"
 ): RTCConfiguration {
   return {
     iceServers: iceServers ?? getIceServers(),
     iceCandidatePoolSize: 10,
     bundlePolicy: "max-bundle",
     rtcpMuxPolicy: "require",
-    iceTransportPolicy: "all",
+    iceTransportPolicy,
   };
 }
 

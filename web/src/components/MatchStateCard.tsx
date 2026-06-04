@@ -48,9 +48,9 @@ const copy: Record<AppPhase, { title: string; subtitle: string }> = {
     title: "Finding a musician",
     subtitle: "Matching you with someone who shares your vibe…",
   },
-  connecting: {
+    connecting: {
     title: "Tuning the line",
-    subtitle: "Setting up the voice link…",
+    subtitle: "Connecting voice automatically…",
   },
   connected: {
     title: "You're live",
