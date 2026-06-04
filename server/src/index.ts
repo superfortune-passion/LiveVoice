@@ -3,7 +3,7 @@ import { loadServerEnv } from "./load-env.js";
 loadServerEnv();
 
 import cors from "cors";
-import express from "express";
+import express, { type Request, type Response } from "express";
 import { createServer } from "http";
 import { Server } from "socket.io";
 import {
@@ -55,12 +55,12 @@ function refreshStats(): void {
 }
 
 /** Fast liveness check — use this in the browser (no heavy audit). */
-app.get("/health", (_req, res) => {
+app.get("/health", (_req: Request, res: Response) => {
   res.setHeader("Cache-Control", "no-store");
   res.json({ ok: true, ...getPlatformStats(io, matchmaking) });
 });
 
-app.get("/health/details", (_req, res) => {
+app.get("/health/details", (_req: Request, res: Response) => {
   const audit = connectionRegistry.auditPairs(matchmaking);
   res.json({
     ok: true,

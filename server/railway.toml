@@ -1,0 +1,10 @@
+# Railway — set Service → Settings → Root Directory = server (this folder)
+
+[build]
+builder = "nixpacks"
+buildCommand = "npm install --include=dev && npm run build"
+
+[deploy]
+startCommand = "npm run start"
+healthcheckPath = "/health"
+restartPolicyType = "on_failure"
